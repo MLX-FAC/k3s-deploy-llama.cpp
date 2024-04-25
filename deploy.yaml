@@ -1,0 +1,64 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+    name: my-deployment
+spec:
+    replicas: 1
+    selector:
+        matchLabels:
+            app: my-app
+    template:
+        metadata:
+            labels:
+                app: my-app
+        spec:
+            initContainers:
+                - name: init-convert
+                  image: stathiskap/convert-lora-and-gemma-to-gguf:latest
+                  imagePullPolicy: Always
+                  volumeMounts:
+                      - name: shared-data
+                        mountPath: /mlx-deploy
+                  env:
+                      - name: HF_TOKEN
+                        value: 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
+                      - name: LORA_REPO
+                        value: besartshyti/gemma-2b-peft
+            containers:
+                - name: fastapi-app
+                  image: stathiskap/test-app:1.0
+                  volumeMounts:
+                      - name: shared-data
+                        mountPath: /model
+                  resources:
+                      limits:
+                          cpu: 7
+                          memory: 32G
+            volumes:
+                - name: shared-data
+                  persistentVolumeClaim:
+                      claimName: my-pvc
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+    name: my-pvc
+spec:
+    accessModes:
+        - ReadWriteOnce
+    resources:
+        requests:
+            storage: 20Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+    name: my-service
+spec:
+    type: LoadBalancer
+    ports:
+        - port: 8000
+          targetPort: 8000
+          protocol: TCP
+    selector:
+        app: my-app

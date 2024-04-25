@@ -1,0 +1,28 @@
+version: '3.8'
+services:
+  app:
+    image: stathiskap/test-app:1.0
+    ports:
+      - "8080:8000"
+    volumes:
+      - data:/model
+    restart: unless-stopped
+    pull_policy: always
+
+  shell:
+    image: bash
+    volumes:
+      - data:/model
+    command: 'sleep 10000'
+
+  convert:
+    image: stathiskap/convert-lora-and-gemma-to-gguf:latest
+    volumes:
+      - data:/mlx-deploy
+    environment: 
+      - HF_TOKEN=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
+      - LORA_REPO=besartshyti/gemma-2b-peft
+    pull_policy: always
+      
+volumes:
+  data:
